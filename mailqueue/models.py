@@ -13,7 +13,11 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.conf import settings
 
-from mailqueue import defaults
+from . import defaults
+
+__author__ = 'Derek Stegelman'
+__date__ = '10/5/12'
+
 
 class MailerMessage(models.Model):
     subject = models.CharField(max_length=250, blank=True, null=True)
@@ -30,6 +34,9 @@ class MailerMessage(models.Model):
         return self.subject
 
     def send(self):
+        """ Send emails.  Mark them success or failure, and
+         timestamp them.
+        """
         if not self.sent:
             self.last_attempt = datetime.datetime.now()
             try:
@@ -49,6 +56,14 @@ class MailerMessage(models.Model):
             except Exception, e:
                 print("mail queue exception %s" % e)
             self.save()
+
+
+class Attachment(models.Model):
+    file_attachment = models.FileField(upload_to='mail-queue/attachments', blank=True, null=True)
+    email = models.ForeignKey(MailerMessage)
+
+    def __unicode__(self):
+        return self.file.filename
 
 
 @receiver(post_save, sender=MailerMessage)
