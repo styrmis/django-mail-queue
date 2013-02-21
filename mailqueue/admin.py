@@ -1,13 +1,26 @@
 from django.contrib import admin
 from django.conf import settings
 
-from mailqueue.models import MailerMessage
-from mailqueue import defaults
+from .models import MailerMessage, Attachment
+from . import defaults
+
+__author__ = 'Derek Stegelman'
+__date__ = '10/5/12'
+
+
+class AttachmentAdmin(admin.TabularInline):
+    model = Attachment
+    extra = 1
+
 
 class MailerAdmin(admin.ModelAdmin):
     list_display = ('app', 'subject', 'to_address', 'sent', 'last_attempt')
-    search_fields = ['to_address', 'subject', 'app', 'bcc_address']
+    search_fields = ['to_address', 'subject', 'app', 'bcc_address', 'content']
+    fields = (('to_address', 'from_address', 'bcc_address'), 'subject', 'content', 'html_content', 'attachment', 'app',
+              'last_attempt')
     actions = ['send_failed']
+    list_filter = ('sent', 'last_attempt', 'app')
+    inlines = [AttachmentAdmin]
 
     def send_failed(self, request, queryset):
         emails = queryset.filter(sent=False)
