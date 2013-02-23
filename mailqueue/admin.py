@@ -16,11 +16,12 @@ class AttachmentAdmin(admin.TabularInline):
 class MailerAdmin(admin.ModelAdmin):
     list_display = ('app', 'subject', 'to_address', 'sent', 'last_attempt')
     search_fields = ['to_address', 'subject', 'app', 'bcc_address', 'content']
-    fields = (('to_address', 'from_address', 'bcc_address'), 'subject', 'content', 'html_content', 'attachment', 'app',
+    fields = (('to_address', 'from_address', 'bcc_address'), 'subject', 'content', 'html_content', 'app',
               'last_attempt')
     actions = ['send_failed']
     list_filter = ('sent', 'last_attempt', 'app')
     inlines = [AttachmentAdmin]
+    readonly_fields = ['last_attempt']
 
     def send_failed(self, request, queryset):
         emails = queryset.filter(sent=False)
