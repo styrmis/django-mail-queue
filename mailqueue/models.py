@@ -66,6 +66,12 @@ class MailerMessage(models.Model):
                         msg.bcc = [ email.strip() for email in self.bcc_address.split(',') ]
                     else:
                         msg.bcc = [self.bcc_address, ]
+                # Add any additional attachments
+
+                if self.attachment_set.all():
+                    for file in self.attachment_set.all:
+                        msg.attach(file.name, file.read(), file.content_type)
+
                 msg.send()
                 self.sent = True
             except Exception, e:
@@ -78,7 +84,7 @@ class Attachment(models.Model):
     email = models.ForeignKey(MailerMessage)
 
     def __unicode__(self):
-        return self.file.filename
+        return self.file_attachment.name
 
 
 @receiver(post_save, sender=MailerMessage)

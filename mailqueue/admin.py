@@ -14,7 +14,7 @@ class AttachmentAdmin(admin.TabularInline):
 
 
 class MailerAdmin(admin.ModelAdmin):
-    list_display = ('app', 'subject', 'to_address', 'sent', 'last_attempt')
+    list_display = ('subject', 'to_address', 'sent', 'last_attempt', 'app')
     search_fields = ['to_address', 'subject', 'app', 'bcc_address', 'content']
     fields = (('to_address', 'from_address', 'bcc_address'), 'subject', 'content', 'html_content', 'app',
               'last_attempt')
