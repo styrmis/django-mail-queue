@@ -6,7 +6,6 @@
 #
 #---------------------------------------------#
 import datetime
-from django.utils.timezone import utc
 
 from django.db import models
 from django.core.mail import EmailMultiAlternatives
@@ -20,6 +19,7 @@ __author__ = 'Derek Stegelman'
 __date__ = '10/5/12'
 
 
+
 class MailerMessageManager(models.Manager):
     def send_queued(self, limit=None):
         if limit is None:
@@ -27,6 +27,7 @@ class MailerMessageManager(models.Manager):
 
         for email in self.filter(sent=False)[:limit]:
             email.send()
+
 
 class MailerMessage(models.Model):
     subject = models.CharField(max_length=250, blank=True, null=True)
@@ -49,8 +50,9 @@ class MailerMessage(models.Model):
          timestamp them.
         """
         if not self.sent:
-            if settings.USE_TZ:
+            if getattr(settings, 'USE_TZ', False):
                 # This change breaks SQLite usage.
+                from django.utils.timezone import utc
                 self.last_attempt = datetime.datetime.utcnow().replace(tzinfo=utc)
             else:
                 self.last_attempt = datetime.datetime.now()
