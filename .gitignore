@@ -2,8 +2,3 @@
 dist/
 django_mail_queue.egg-info/
 .idea
-manage.py
-settings.py
-urls.py
-wsgi.py
-*.db
