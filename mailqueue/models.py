@@ -28,7 +28,6 @@ class MailerMessageManager(models.Manager):
         for email in self.filter(sent=False)[:limit]:
             email.send()
 
-
 class MailerMessage(models.Model):
     subject = models.CharField(max_length=250, blank=True, null=True)
     to_address = models.EmailField(max_length=250)
@@ -45,9 +44,27 @@ class MailerMessage(models.Model):
     def __unicode__(self):
         return self.subject
 
+    def add_attachment(self, attachment):
+        if self.is_new:
+            self._save_without_sending()
+
+        Attachment.objects.create(email=self, file_attachment=attachment)
+
+    def _save_without_sending(self, *args, **kwargs):
+        """
+        This ensures that the MailerMessage instance is saved before sending the e-mail,
+        so that other models (e.g. `Attachment`) have something to relate to in the database.
+        """
+        self.do_not_save = True
+        super(MailerMessage, self).save(*args, **kwargs)
+
+    @property
+    def is_new(self):
+        return self.pk is None
+
     def send(self):
-        """ Send emails.  Mark them success or failure, and
-         timestamp them.
+        """
+        Send emails.  Mark them success or failure, and timestamp them.
         """
         if not self.sent:
             if getattr(settings, 'USE_TZ', False):
@@ -68,22 +85,22 @@ class MailerMessage(models.Model):
                         msg.bcc = [ email.strip() for email in self.bcc_address.split(',') ]
                     else:
                         msg.bcc = [self.bcc_address, ]
-                # Add any additional attachments
 
-                if self.attachment_set.all():
-                    for file in self.attachment_set.all:
-                        msg.attach(file.name, file.read(), file.content_type)
+                # Add any additional attachments
+                for a in self.attachment_set.all():
+                    msg.attach_file(a.file_attachment.file.name)
 
                 msg.send()
                 self.sent = True
             except Exception, e:
                 print("mail queue exception %s" % e)
+
             self.save()
 
 
 class Attachment(models.Model):
     file_attachment = models.FileField(upload_to='mail-queue/attachments', blank=True, null=True)
-    email = models.ForeignKey(MailerMessage)
+    email = models.ForeignKey(MailerMessage, blank=True, null=True)
 
     def __unicode__(self):
         return self.file_attachment.name
@@ -91,8 +108,12 @@ class Attachment(models.Model):
 
 @receiver(post_save, sender=MailerMessage)
 def send_post_save(sender, instance, signal, *args, **kwargs):
+    if getattr(instance, "do_not_save", False):
+        instance.do_not_save = False
+        return
+
     if getattr(settings, 'MAILQUEUE_CELERY', defaults.MAILQUEUE_CELERY):
         from mailqueue.tasks import send_mail
-        send_mail.delay(instance)
+        send_mail.delay(instance.pk)
     else:
         instance.send()
